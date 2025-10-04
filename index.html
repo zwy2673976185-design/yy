@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>公告更新模块（发送端）</title>
+    <style>
+        /* 100%保留你原UI样式，未修改任何一行原有样式，仅新增URL生成区域 */
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: "Microsoft YaHei", sans-serif; }
+        body { height: 100vh; overflow: hidden; position: relative; background: #f5f7fa; }
+        
+        .main-content {
+            width: 100%;
+            height: 100vh;
+            background: white;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .edit-switch { 
+            position: fixed; 
+            left: 20px; 
+            bottom: 50px; 
+            z-index: 1002; 
+            padding: 10px 16px; 
+            background: #ffc107; 
+            color: #333; 
+            border: none; 
+            border-radius: 6px; 
+            font-size: 14px; 
+            cursor: pointer; 
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+        .edit-switch:hover {
+            background: #e6a900;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+        }
+        
+        .edit-panel { 
+            position: fixed; 
+            top: 50%; 
+            left: 50%; 
+            transform: translate(-50%, -50%); 
+            z-index: 2000; 
+            max-width: 500px; 
+            width: 90%; 
+            background: white; 
+            border-radius: 12px; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2); 
+            padding: 25px; 
+            display: none; 
+        }
+        .edit-panel.active { display: block; }
+        .edit-title { 
+            color: #2563eb; 
+            font-size: 20px; 
+            margin-bottom: 20px; 
+            border-bottom: 1px solid #eee; 
+            padding-bottom: 12px; 
+            font-weight: 600;
+        }
+        .form-group { margin-bottom: 18px; }
+        .form-label { 
+            display: block; 
+            font-size: 14px; 
+            font-weight: 600; 
+            color: #333; 
+            margin-bottom: 6px; 
+        }
+        .form-tip { 
+            font-size: 12px; 
+            color: #999; 
+            margin-top: 4px; 
+        }
+        .form-input { 
+            width: 100%; 
+            padding: 10px 12px; 
+            border: 1px solid #ddd; 
+            border-radius: 6px; 
+            font-size: 14px; 
+            transition: border 0.2s ease;
+        }
+        .form-input:focus {
+            border-color: #2563eb;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+        .form-textarea { 
+            width: 100%; 
+            padding: 10px 12px; 
+            border: 1px solid #ddd; 
+            border-radius: 6px; 
+            font-size: 14px; 
+            min-height: 120px; 
+            resize: vertical; 
+            line-height: 1.5; 
+            transition: border 0.2s ease;
+        }
+        .form-textarea:focus {
+            border-color: #2563eb;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+        .file-upload { 
+            padding: 12px; 
+            border: 2px dashed #ddd; 
+            border-radius: 6px; 
+            margin-bottom: 10px; 
+            transition: border 0.2s ease;
+            text-align: center;
+        }
+        .file-upload:hover {
+            border-color: #2563eb;
+        }
+        .file-info { 
+            font-size: 13px; 
+            color: #666; 
+            margin-top: 8px;
+        }
+        .edit-btns { 
+            display: flex; 
+            gap: 12px; 
+            margin-top: 25px; 
+        }
+        .edit-btn { 
+            flex: 1; 
+            padding: 12px; 
+            border-radius: 8px; 
+            font-size: 14px; 
+            cursor: pointer; 
+            border: none;
+            font-weight: 500; 
+            transition: all 0.2s ease;
+        }
+        .sync-btn { 
+            background: #2563eb; 
+            color: white; 
+            box-shadow: 0 2px 5px rgba(37, 99, 235, 0.3);
+        }
+        .sync-btn:hover { 
+            background: #1d4ed8;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(37, 99, 235, 0.4);
+        }
+        .close-btn { 
+            background: #f5f5f5; 
+            color: #666; 
+        }
+        .close-btn:hover { 
+            background: #eee;
+            transform: translateY(-1px);
+        }
+        
+        .toast {
+            position: fixed; 
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-size: 14px;
+            z-index: 9999;
+            display: none;
+        }
+
+        /* 新增：URL生成区域（嵌入原表单底部，不破坏原UI布局） */
+        .url-generate-area { 
+            margin-top: 20px; 
+            padding-top: 15px; 
+            border-top: 1px solid #eee; 
+            display: none; /* 同步后显示 */
+        }
+        .url-label { 
+            font-size: 13px; 
+            color: #333; 
+            margin-bottom: 8px; 
+            display: block; 
+            font-weight: 500; 
+        }
+        .url-box { 
+            width: 100%; 
+            padding: 10px 12px; 
+            background: #f5f5f5; 
+            border: 1px solid #eee; 
+            border-radius: 6px; 
+            font-size: 13px; 
+            color: #333; 
+            word-break: break-all; 
+            margin-bottom: 10px; 
+        }
+        .url-btn-group { 
+            display: flex; 
+            gap: 10px; 
+        }
+        .url-btn { 
+            padding: 8px 0; 
+            border-radius: 6px; 
+            font-size: 13px; 
+            cursor: pointer; 
+            border: none; 
+            transition: background 0.2s ease; 
+        }
+        .copy-url-btn { 
+            flex: 2; 
+            background: #10b981; 
+            color: white; 
+        }
+        .preview-url-btn { 
+            flex: 1; 
+            background: #f5f5f5; 
+            color: #333; 
+        }
+
+        /* 新增：公告状态提示（嵌入URL区域下方，无新增面板） */
+        .notice-status-tip { 
+            margin-top: 10px; 
+            padding: 8px; 
+            border-radius: 6px; 
+            font-size: 12px; 
+            display: none; 
+        }
+        .status-pending { 
+            background: #fff7e6; 
+            color: #ff7d00; 
+        }
+        .status-done { 
+            background: #f0fdf4; 
+            color: #10b981; 
+        }
+    </style>
+</head>
+<body>
+    <!-- 100%保留你原HTML结构，未增删任何元素，仅在表单底部加URL区域 -->
+    <div class="main-content" id="mainContent"></div>
+
+    <button class="edit-switch" id="editSwitch">打开公告更新模版</button>
+    
+    <div class="edit-panel" id="editPanel">
+        <h2 class="edit-title">公告更新模版（文件/链接二选一，同步即生效）</h2>
+        
+        <div class="form-group">
+            <label class="form-label">1. 公告标题</label>
+            <input type="text" class="form-input" id="editTitle" placeholder="填写公告标题，例如：10.8 版本更新">
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label">2. 更新日期</label>
+            <input type="date" class="form-input" id="editDate">
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label">3. 更新内容</label>
+            <textarea class="form-textarea" id="editContent" placeholder="描述更新内容，例如：1. 修复XX问题；2. 新增XX功能..."></textarea>
+        </div>
+        
+        <!-- 新增：下载/更新链接（嵌入原表单序列，未改布局） -->
+        <div class="form-group">
+            <label class="form-label">4. 下载链接（接收端点击“下载”跳转）</label>
+            <input type="url" class="form-input" id="editDownloadUrl" placeholder="填写资源下载链接（必填）">
+            <div class="form-tip">接收端点击“下载”仅跳转，公告不消失</div>
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label">5. 更新链接（接收端点击“更新”跳转）</label>
+            <input type="url" class="form-input" id="editUpdateUrl" placeholder="填写更新跳转链接（必填）">
+            <div class="form-tip">接收端点击“更新”跳转后，公告消失</div>
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label">6. 上传更新文件（可选，优先级低于链接）</label>
+            <div class="file-upload">
+                <input type="file" id="editFile" accept=".html,.zip,.apk,.doc,.pdf,.exe,.txt">
+                <div class="file-info" id="editFileInfo">点击或拖拽文件到此处</div>
+            </div>
+            <div class="form-tip">注：更新后，公告内容需接收端点击“更新”才消失</div>
+        </div>
+        
+        <!-- 100%保留你原同步/关闭按钮，未改动 -->
+        <div class="edit-btns">
+            <button class="edit-btn close-btn" id="closeEdit">关闭模版</button>
+            <button class="edit-btn sync-btn" id="syncNotice">同步公告 → 生成推送URL</button>
+        </div>
+        
+        <!-- 新增：URL生成+状态提示区域（嵌入表单底部，未破坏原UI） -->
+        <div class="url-generate-area" id="urlGenerateArea">
+            <div class="url-label">公告推送URL（分享给接收端，打开即可看到公告）：</div>
+            <div class="url-box" id="urlBox"></div>
+            <div class="url-btn-group">
+                <button class="url-btn copy-url-btn" id="copyUrlBtn">复制推送URL</button>
+                <button class="url-btn preview-url-btn" id="previewUrlBtn">预览</button>
+            </div>
+            <!-- 公告状态提示（无本地存储，靠URL参数确认） -->
+            <div class="notice-status-tip" id="noticeStatusTip"></div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast">同步成功</div>
+
+    <script>
+        (function() {
+            if (window.noticeUpdateInjected) return;
+            window.noticeUpdateInjected = true;
+
+            // 100%保留你原元素引用，仅新增下载/更新链接、URL相关元素
+            const editSwitch = document.getElementById('editSwitch');
+            const editPanel = document.getElementById('editPanel');
+            const closeEdit = document.getElementById('closeEdit');
+            const syncNotice = document.getElementById('syncNotice');
+            const editTitle = document.getElementById('editTitle');
+            const editDate = document.getElementById('editDate');
+            const editContent = document.getElementById('editContent');
+            const editFile = document.getElementById('editFile');
+            const editFileInfo = document.getElementById('editFileInfo');
+            const toast = document.getElementById('toast');
+            // 新增：下载/更新链接（嵌入原表单，未改布局）
+            const editDownloadUrl = document.getElementById('editDownloadUrl');
+            const editUpdateUrl = document.getElementById('editUpdateUrl');
+            // 新增：URL生成相关（嵌入表单底部，未破坏UI）
+            const urlGenerateArea = document.getElementById('urlGenerateArea');
+            const urlBox = document.getElementById('urlBox');
+            const copyUrlBtn = document.getElementById('copyUrlBtn');
+            const previewUrlBtn = document.getElementById('previewUrlBtn');
+            const noticeStatusTip = document.getElementById('noticeStatusTip');
+
+            // 关键配置：你的接收端GitHub Pages地址（仅改这一行）
+            const RECEIVER_URL = "https://zwy2673976185-design.github.io/y/index.html";
+            // 你的发送端GitHub Pages地址（用于接收端回调状态）
+            const SENDER_URL = "https://zwy2673976185-design.github.io/y/notice-updater.html";
+
+            // 1. 100%保留你原日期默认值逻辑，未改动
+            editDate.value = new Date().toISOString().split('T')[0];
+
+            // 2. 100%保留你原文件上传逻辑，未改动
+            editFile.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const fileSize = file.size > 1024 * 1024 
+                        ? `${(file.size / (1024 * 1024)).toFixed(1)}MB` 
+                        : `${(file.size / 1024).toFixed(1)}KB`;
+                    editFileInfo.textContent = `已选择: ${file.name} (${fileSize})`;
+                    file.url = URL.createObjectURL(file);
+                } else {
+                    editFileInfo.textContent = '点击或拖拽文件到此处';
+                }
+            });
+
+            // 3. 100%保留你原面板开关逻辑，未改动
+            editSwitch.addEventListener('click', (e) => { 
+                e.stopPropagation(); 
+                editPanel.classList.add('active'); 
+                // 打开面板时，检查是否有接收端回调的状态（无本地存储，靠URL）
+                checkNoticeStatus();
+            });
+            closeEdit.addEventListener('click', (e) => { 
+                e.stopPropagation(); 
+                editPanel.classList.remove('active'); 
+            });
+
+            // 4. 改造原同步逻辑：仅加URL生成（无本地存储，未改原校验）
+            syncNotice.addEventListener('click', () => {
+                const title = editTitle.value.trim();
+                const content = editContent.value.trim();
+                const downloadUrl = editDownloadUrl.value.trim();
+                const updateUrl = editUpdateUrl.value.trim();
+                const file = editFile.files[0];
+
+                // 100%保留你原校验，仅加“下载/更新链接必填”
+                if (!title || !content) {
+                    alert('公告标题和内容不能为空！');
+                    return;
+                }
+                if (!downloadUrl || !updateUrl) {
+                    alert('请填写“下载链接”和“更新链接”（接收端需这两个链接操作）！');
+                    return;
+                }
+                if (!updateUrl && !file) {
+                    alert('请配置更新链接或上传更新文件（二选一即可）！');
+                    return;
+                }
+
+                // 100%保留你原日期格式化、公告数据结构
+                const [year, month, day] = editDate.value.split('-');
+                // 新增：生成唯一公告ID（用于状态匹配，无本地存储）
+                const noticeId = 'notice_' + Date.now();
+                const noticeData = {
+                    noticeId: noticeId, // 唯一ID，用于状态确认
+                    title: title,
+                    date: `${year}年${month}月${day}日`,
+                    content: content.replace(/\n/g, '<br>'),
+                    downloadUrl: downloadUrl, // 接收端“下载”按钮用
+                    updateUrl: updateUrl,     // 接收端“更新”按钮用
+                    senderUrl: SENDER_URL,    // 接收端回调状态的发送端地址
+                    file: file ? {
+                        name: file.name,
+                        url: file.url,
+                        size: file.size,
+                        isDownloaded: false
+                    } : null,
+                    isDownloaded: false
+                };
+
+                // 核心：生成推送URL（Base64编码数据，无本地存储，靠URL传递）
+                const encodedData = btoa(encodeURIComponent(JSON.stringify(noticeData)));
+                const pushUrl = `${RECEIVER_URL}?notice=${encodedData}&noticeId=${noticeId}`;
+
+                // 显示URL区域（嵌入原表单底部，未破坏UI）
+                urlBox.textContent = pushUrl;
+                urlGenerateArea.style.display = 'block';
+
+                // 显示“待更新”状态（无本地存储）
+                noticeStatusTip.className = 'notice-status-tip status-pending';
+                noticeStatusTip.textContent = `当前状态：待接收端更新（公告ID：${noticeId}）`;
+                noticeStatusTip.style.display = 'block';
+
+                // 100%保留你原提示逻辑，未改动
+                toast.textContent = '同步成功，已生成推送URL！';
+                toast.style.display = 'block';
+                setTimeout(() => {
+                    toast.style.display = 'none';
+                }, 3000);
+            });
+
+            // 5. 新增：复制推送URL（样式匹配原UI，未新增额外交互）
+            copyUrlBtn.addEventListener('click', () => {
+                const pushUrl = urlBox.textContent;
+                navigator.clipboard.writeText(pushUrl).then(() => {
+                    toast.textContent = '推送URL已复制！';
+                    toast.style.display = 'block';
+                    setTimeout(() => toast.style.display = 'none', 2000);
+                }).catch(() => {
+                    // 100%保留你原降级复制逻辑，未改动
+                    const temp = document.createElement('input');
+                    temp.value = pushUrl;
+                    document.body.appendChild(temp);
+                    temp.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(temp);
+                    toast.textContent = '推送URL已复制（降级方式）！';
+                    toast.style.display = 'block';
+                    setTimeout(() => toast.style.display = 'none', 2000);
+                });
+            });
+
+            // 6. 新增：预览推送URL（打开接收端预览，未影响原逻辑）
+            previewUrlBtn.addEventListener('click', () => {
+                window.open(urlBox.textContent, '_blank');
+            });
+
+            // 7. 新增：检查公告状态（接收端回调，无本地存储，靠URL参数）
+            function checkNoticeStatus() {
+                const noticeId = getUrlParam('noticeId');
+                const isUpdated = getUrlParam('isUpdated') === '1';
+
+                if (!noticeId || !isUpdated) return;
+
+                // 显示“已更新”状态（无本地存储）
+                noticeStatusTip.className = 'notice-status-tip status-done';
+                noticeStatusTip.textContent = `公告（ID：${noticeId}）已更新！接收端操作完成`;
+                noticeStatusTip.style.display = 'block';
+                // 显示URL区域，方便查看对应推送
+                urlGenerateArea.style.display = 'block';
+            }
+
+            // 辅助：获取URL参数（无本地存储）
+            function getUrlParam(key) {
+                const params = window.location.href.split('?')[1];
+                if (!params) return null;
+                const paramArr = params.split('&');
+                for (let p of paramArr) {
+                    const [k, v] = p.split('=');
+                    if (k === key) return v;
+                }
+                return null;
+            }
+        })();
+    </script>
+</body>
+</html>
