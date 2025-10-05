@@ -291,6 +291,9 @@
             if (window.noticeUpdateInjected) return;
             window.noticeUpdateInjected = true;
 
+            console.log('=== 发送端开始加载 ===');
+            console.log('当前URL:', window.location.href);
+
             // 元素引用
             const editSwitch = document.getElementById('editSwitch');
             const editPanel = document.getElementById('editPanel');
@@ -313,6 +316,9 @@
             const RECEIVER_URL = "https://zwy2673976185-design.github.io/y/index.html";
             const SENDER_URL = "https://zwy2673976185-design.github.io/yy/index.html";
 
+            console.log('配置的接收端URL:', RECEIVER_URL);
+            console.log('配置的发送端URL:', SENDER_URL);
+
             // 1. 日期默认值
             editDate.value = new Date().toISOString().split('T')[0];
 
@@ -329,10 +335,13 @@
 
             // 3. 同步公告
             syncNotice.addEventListener('click', () => {
+                console.log('=== 开始同步公告 ===');
                 const title = editTitle.value.trim();
                 const content = editContent.value.trim();
                 const downloadUrl = editDownloadUrl.value.trim();
                 const updateUrl = editUpdateUrl.value.trim();
+
+                console.log('表单数据:', {title, content, downloadUrl, updateUrl});
 
                 // 校验
                 if (!title || !content) {
@@ -357,9 +366,14 @@
                     senderUrl: SENDER_URL
                 };
 
+                console.log('生成的公告数据:', noticeData);
+
                 // 生成推送URL
                 const encodedData = btoa(encodeURIComponent(JSON.stringify(noticeData)));
                 const pushUrl = `${RECEIVER_URL}?notice=${encodedData}&noticeId=${noticeId}`;
+
+                console.log('编码后的数据:', encodedData);
+                console.log('生成的推送URL:', pushUrl);
 
                 // 显示URL区域
                 urlBox.textContent = pushUrl;
@@ -375,6 +389,8 @@
                 setTimeout(() => {
                     toast.style.display = 'none';
                 }, 3000);
+                
+                console.log('=== 同步公告完成 ===');
             });
 
             // 4. 复制URL
@@ -399,22 +415,35 @@
 
             // 5. 预览
             previewUrlBtn.addEventListener('click', () => {
-                window.open(urlBox.textContent, '_blank');
+                const pushUrl = urlBox.textContent;
+                console.log('预览推送URL:', pushUrl);
+                window.open(pushUrl, '_blank');
             });
 
             // 6. 检查公告状态
             function checkNoticeStatus() {
+                console.log('=== 检查公告状态 ===');
                 const urlParams = new URLSearchParams(window.location.search);
                 const noticeId = urlParams.get('noticeId');
                 const isUpdated = urlParams.get('isUpdated') === '1';
 
-                if (!noticeId || !isUpdated) return;
+                console.log('URL参数 - noticeId:', noticeId);
+                console.log('URL参数 - isUpdated:', isUpdated);
+
+                if (!noticeId || !isUpdated) {
+                    console.log('未找到状态回调参数');
+                    return;
+                }
+
+                console.log('找到状态回调，公告已更新');
 
                 noticeStatusTip.className = 'notice-status-tip status-done';
                 noticeStatusTip.textContent = `公告（ID：${noticeId}）已更新！接收端操作完成`;
                 noticeStatusTip.style.display = 'block';
                 urlGenerateArea.style.display = 'block';
             }
+            
+            console.log('=== 发送端初始化完成 ===');
         })();
     </script>
 </body>
