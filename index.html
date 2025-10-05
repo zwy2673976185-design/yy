@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>公告更新模块（发送端）</title>
     <style>
-        /* 原有所有样式保持不变 */
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: "Microsoft YaHei", sans-serif; }
         body { height: 100vh; overflow: hidden; position: relative; background: #f5f7fa; }
         
@@ -13,7 +12,7 @@
             width: 100%;
             height: 100vh;
             background: white;
-            padding: 0;
+            padding: 20px;
             margin: 0;
         }
         
@@ -168,78 +167,50 @@
             display: none;
         }
 
-        /* URL生成区域 */
-        .url-generate-area { 
-            margin-top: 20px; 
-            padding-top: 15px; 
-            border-top: 1px solid #eee; 
-            display: none;
+        .current-notice {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #2563eb;
         }
-        .url-label { 
-            font-size: 13px; 
-            color: #333; 
-            margin-bottom: 8px; 
-            display: block; 
-            font-weight: 500; 
+        .notice-preview {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+            margin-top: 20px;
         }
-        .url-box { 
-            width: 100%; 
-            padding: 10px 12px; 
-            background: #f5f5f5; 
-            border: 1px solid #eee; 
-            border-radius: 6px; 
-            font-size: 13px; 
-            color: #333; 
-            word-break: break-all; 
-            margin-bottom: 10px; 
+        .preview-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #2563eb;
+            margin-bottom: 8px;
         }
-        .url-btn-group { 
-            display: flex; 
-            gap: 10px; 
-        }
-        .url-btn { 
-            padding: 8px 0; 
-            border-radius: 6px; 
-            font-size: 13px; 
-            cursor: pointer; 
-            border: none; 
-            transition: background 0.2s ease; 
-        }
-        .copy-url-btn { 
-            flex: 2; 
-            background: #10b981; 
-            color: white; 
-        }
-        .preview-url-btn { 
-            flex: 1; 
-            background: #f5f5f5; 
-            color: #333; 
-        }
-
-        .notice-status-tip { 
-            margin-top: 10px; 
-            padding: 8px; 
-            border-radius: 6px; 
-            font-size: 12px; 
-            display: none; 
-        }
-        .status-pending { 
-            background: #fff7e6; 
-            color: #ff7d00; 
-        }
-        .status-done { 
-            background: #f0fdf4; 
-            color: #10b981; 
+        .preview-content {
+            font-size: 14px;
+            color: #666;
+            line-height: 1.5;
         }
     </style>
 </head>
 <body>
-    <div class="main-content" id="mainContent"></div>
+    <div class="main-content" id="mainContent">
+        <div class="current-notice">
+            <h3>当前公告状态</h3>
+            <div id="currentNoticeInfo">暂无活跃公告</div>
+        </div>
+        <div class="notice-preview">
+            <h3>接收端预览</h3>
+            <p>接收端地址：<a href="https://zwy2673976185-design.github.io/y/index.html" target="_blank">https://zwy2673976185-design.github.io/y/index.html</a></p>
+            <p>用户打开上述链接即可看到最新公告</p>
+        </div>
+    </div>
 
-    <button class="edit-switch" id="editSwitch">打开公告更新模版</button>
+    <button class="edit-switch" id="editSwitch">发布新公告</button>
     
     <div class="edit-panel" id="editPanel">
-        <h2 class="edit-title">公告更新模版（GitHub式更新）</h2>
+        <h2 class="edit-title">发布新公告</h2>
         
         <div class="form-group">
             <label class="form-label">1. 公告标题</label>
@@ -258,41 +229,28 @@
         
         <div class="form-group">
             <label class="form-label">4. 下载链接（接收端点击"下载"跳转）</label>
-            <input type="url" class="form-input" id="editDownloadUrl" placeholder="填写资源下载链接（必填）">
+            <input type="url" class="form-input" id="editDownloadUrl" placeholder="https://example.com/download" value="https://www.baidu.com">
             <div class="form-tip">接收端点击"下载"仅跳转，公告不消失</div>
         </div>
         
         <div class="form-group">
             <label class="form-label">5. 更新链接（接收端点击"更新"跳转）</label>
-            <input type="url" class="form-input" id="editUpdateUrl" placeholder="填写更新跳转链接（必填）">
+            <input type="url" class="form-input" id="editUpdateUrl" placeholder="https://example.com/update" value="https://www.google.com">
             <div class="form-tip">接收端点击"更新"跳转后，公告消失</div>
         </div>
         
         <div class="edit-btns">
-            <button class="edit-btn close-btn" id="closeEdit">关闭模版</button>
-            <button class="edit-btn sync-btn" id="syncNotice">同步公告 → 生成推送URL</button>
-        </div>
-        
-        <div class="url-generate-area" id="urlGenerateArea">
-            <div class="url-label">公告推送URL（分享给接收端，打开即可看到公告）：</div>
-            <div class="url-box" id="urlBox"></div>
-            <div class="url-btn-group">
-                <button class="url-btn copy-url-btn" id="copyUrlBtn">复制推送URL</button>
-                <button class="url-btn preview-url-btn" id="previewUrlBtn">预览</button>
-            </div>
-            <div class="notice-status-tip" id="noticeStatusTip"></div>
+            <button class="edit-btn close-btn" id="closeEdit">取消</button>
+            <button class="edit-btn sync-btn" id="syncNotice">发布公告</button>
         </div>
     </div>
 
-    <div id="toast" class="toast">同步成功</div>
+    <div id="toast" class="toast">公告发布成功</div>
 
     <script>
         (function() {
             if (window.noticeUpdateInjected) return;
             window.noticeUpdateInjected = true;
-
-            console.log('=== 发送端开始加载 ===');
-            console.log('当前URL:', window.location.href);
 
             // 元素引用
             const editSwitch = document.getElementById('editSwitch');
@@ -305,19 +263,8 @@
             const editDownloadUrl = document.getElementById('editDownloadUrl');
             const editUpdateUrl = document.getElementById('editUpdateUrl');
             const toast = document.getElementById('toast');
-            const urlGenerateArea = document.getElementById('urlGenerateArea');
-            const urlBox = document.getElementById('urlBox');
-            const copyUrlBtn = document.getElementById('copyUrlBtn');
-            const previewUrlBtn = document.getElementById('previewUrlBtn');
-            const noticeStatusTip = document.getElementById('noticeStatusTip');
-
-            // 🔥 关键修复：修改为您的GitHub Pages正确URL
-            // 格式：https://[用户名].github.io/[仓库名]/[文件名]
-            const RECEIVER_URL = "https://zwy2673976185-design.github.io/y/index.html";
-            const SENDER_URL = "https://zwy2673976185-design.github.io/yy/index.html";
-
-            console.log('配置的接收端URL:', RECEIVER_URL);
-            console.log('配置的发送端URL:', SENDER_URL);
+            const currentNoticeInfo = document.getElementById('currentNoticeInfo');
+            const mainContent = document.getElementById('mainContent');
 
             // 1. 日期默认值
             editDate.value = new Date().toISOString().split('T')[0];
@@ -326,22 +273,36 @@
             editSwitch.addEventListener('click', (e) => { 
                 e.stopPropagation(); 
                 editPanel.classList.add('active'); 
-                checkNoticeStatus();
             });
             closeEdit.addEventListener('click', (e) => { 
                 e.stopPropagation(); 
                 editPanel.classList.remove('active'); 
             });
 
-            // 3. 同步公告
+            // 3. 加载现有公告
+            function loadCurrentNotice() {
+                const noticeData = localStorage.getItem('currentNotice');
+                if (noticeData) {
+                    const notice = JSON.parse(noticeData);
+                    currentNoticeInfo.innerHTML = `
+                        <div style="margin-bottom: 10px;">
+                            <strong>标题：</strong>${notice.title}<br>
+                            <strong>日期：</strong>${notice.date}<br>
+                            <strong>状态：</strong><span style="color: #10b981;">活跃中</span>
+                        </div>
+                        <button class="edit-btn" onclick="clearCurrentNotice()" style="background: #ef4444; color: white; padding: 8px 12px; font-size: 12px;">清除公告</button>
+                    `;
+                } else {
+                    currentNoticeInfo.innerHTML = '暂无活跃公告';
+                }
+            }
+
+            // 4. 发布公告
             syncNotice.addEventListener('click', () => {
-                console.log('=== 开始同步公告 ===');
                 const title = editTitle.value.trim();
                 const content = editContent.value.trim();
                 const downloadUrl = editDownloadUrl.value.trim();
                 const updateUrl = editUpdateUrl.value.trim();
-
-                console.log('表单数据:', {title, content, downloadUrl, updateUrl});
 
                 // 校验
                 if (!title || !content) {
@@ -355,95 +316,50 @@
 
                 // 生成公告数据
                 const [year, month, day] = editDate.value.split('-');
-                const noticeId = 'notice_' + Date.now();
                 const noticeData = {
-                    noticeId: noticeId,
+                    noticeId: 'notice_' + Date.now(),
                     title: title,
                     date: `${year}年${month}月${day}日`,
                     content: content.replace(/\n/g, '<br>'),
                     downloadUrl: downloadUrl,
                     updateUrl: updateUrl,
-                    senderUrl: SENDER_URL
+                    timestamp: new Date().getTime()
                 };
 
-                console.log('生成的公告数据:', noticeData);
-
-                // 生成推送URL
-                const encodedData = btoa(encodeURIComponent(JSON.stringify(noticeData)));
-                const pushUrl = `${RECEIVER_URL}?notice=${encodedData}&noticeId=${noticeId}`;
-
-                console.log('编码后的数据:', encodedData);
-                console.log('生成的推送URL:', pushUrl);
-
-                // 显示URL区域
-                urlBox.textContent = pushUrl;
-                urlGenerateArea.style.display = 'block';
-
-                // 显示状态
-                noticeStatusTip.className = 'notice-status-tip status-pending';
-                noticeStatusTip.textContent = `当前状态：待接收端更新（公告ID：${noticeId}）`;
-                noticeStatusTip.style.display = 'block';
-
-                toast.textContent = '同步成功，已生成推送URL！';
+                // 存储到localStorage（接收端会读取这个）
+                localStorage.setItem('currentNotice', JSON.stringify(noticeData));
+                
+                // 显示成功提示
+                toast.textContent = '公告发布成功！接收端已可看到新公告';
                 toast.style.display = 'block';
                 setTimeout(() => {
                     toast.style.display = 'none';
                 }, 3000);
+
+                // 更新当前公告显示
+                loadCurrentNotice();
                 
-                console.log('=== 同步公告完成 ===');
+                // 重置表单并关闭面板
+                editTitle.value = '';
+                editContent.value = '';
+                editPanel.classList.remove('active');
             });
 
-            // 4. 复制URL
-            copyUrlBtn.addEventListener('click', () => {
-                const pushUrl = urlBox.textContent;
-                navigator.clipboard.writeText(pushUrl).then(() => {
-                    toast.textContent = '推送URL已复制！';
+            // 5. 清除公告
+            window.clearCurrentNotice = function() {
+                if (confirm('确定要清除当前公告吗？接收端将看不到任何公告。')) {
+                    localStorage.removeItem('currentNotice');
+                    loadCurrentNotice();
+                    toast.textContent = '公告已清除';
                     toast.style.display = 'block';
-                    setTimeout(() => toast.style.display = 'none', 2000);
-                }).catch(() => {
-                    const temp = document.createElement('input');
-                    temp.value = pushUrl;
-                    document.body.appendChild(temp);
-                    temp.select();
-                    document.execCommand('copy');
-                    document.body.removeChild(temp);
-                    toast.textContent = '推送URL已复制（降级方式）！';
-                    toast.style.display = 'block';
-                    setTimeout(() => toast.style.display = 'none', 2000);
-                });
-            });
-
-            // 5. 预览
-            previewUrlBtn.addEventListener('click', () => {
-                const pushUrl = urlBox.textContent;
-                console.log('预览推送URL:', pushUrl);
-                window.open(pushUrl, '_blank');
-            });
-
-            // 6. 检查公告状态
-            function checkNoticeStatus() {
-                console.log('=== 检查公告状态 ===');
-                const urlParams = new URLSearchParams(window.location.search);
-                const noticeId = urlParams.get('noticeId');
-                const isUpdated = urlParams.get('isUpdated') === '1';
-
-                console.log('URL参数 - noticeId:', noticeId);
-                console.log('URL参数 - isUpdated:', isUpdated);
-
-                if (!noticeId || !isUpdated) {
-                    console.log('未找到状态回调参数');
-                    return;
+                    setTimeout(() => {
+                        toast.style.display = 'none';
+                    }, 2000);
                 }
+            };
 
-                console.log('找到状态回调，公告已更新');
-
-                noticeStatusTip.className = 'notice-status-tip status-done';
-                noticeStatusTip.textContent = `公告（ID：${noticeId}）已更新！接收端操作完成`;
-                noticeStatusTip.style.display = 'block';
-                urlGenerateArea.style.display = 'block';
-            }
-            
-            console.log('=== 发送端初始化完成 ===');
+            // 初始化加载当前公告
+            loadCurrentNotice();
         })();
     </script>
 </body>
