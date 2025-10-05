@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>公告更新模块（发送端）</title>
+    <title>公告更新模块（YY发送端）</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: "Microsoft YaHei", sans-serif; }
         body { height: 100vh; overflow: hidden; position: relative; background: #f5f7fa; }
@@ -103,21 +103,32 @@
             outline: none;
             box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
         }
+        /* 文件上传区域样式 */
         .file-upload { 
-            padding: 12px; 
+            padding: 15px; 
             border: 2px dashed #ddd; 
             border-radius: 6px; 
             margin-bottom: 10px; 
             transition: border 0.2s ease;
             text-align: center;
+            cursor: pointer;
         }
         .file-upload:hover {
             border-color: #2563eb;
+            background: #f9faff;
+        }
+        .file-upload-icon {
+            font-size: 24px;
+            color: #999;
+            margin-bottom: 8px;
         }
         .file-info { 
             font-size: 13px; 
             color: #666; 
             margin-top: 8px;
+        }
+        #fileInput {
+            display: none; /* 隐藏原生输入框，用自定义样式触发 */
         }
         .edit-btns { 
             display: flex; 
@@ -131,7 +142,7 @@
             font-size: 14px; 
             cursor: pointer; 
             border: none;
-            font-weight: 500;
+            font-weight: 500; 
             transition: all 0.2s ease;
         }
         .sync-btn { 
@@ -166,7 +177,6 @@
             z-index: 9999;
             display: none;
         }
-
         .current-notice {
             background: #f8f9fa;
             padding: 15px;
@@ -197,20 +207,19 @@
 <body>
     <div class="main-content" id="mainContent">
         <div class="current-notice">
-            <h3>当前公告状态</h3>
+            <h3>当前公告状态（YY发送端）</h3>
             <div id="currentNoticeInfo">暂无活跃公告</div>
         </div>
         <div class="notice-preview">
-            <h3>接收端预览</h3>
+            <h3>Y接收端预览</h3>
             <p>接收端地址：<a href="https://zwy2673976185-design.github.io/y/index.html" target="_blank">https://zwy2673976185-design.github.io/y/index.html</a></p>
-            <p>用户打开上述链接即可看到最新公告</p>
+            <p>接收端无需刷新，发布后1秒内自动显示新公告</p>
         </div>
     </div>
-
     <button class="edit-switch" id="editSwitch">发布新公告</button>
     
     <div class="edit-panel" id="editPanel">
-        <h2 class="edit-title">发布新公告</h2>
+        <h2 class="edit-title">发布新公告（YY发送端）</h2>
         
         <div class="form-group">
             <label class="form-label">1. 公告标题</label>
@@ -227,16 +236,18 @@
             <textarea class="form-textarea" id="editContent" placeholder="描述更新内容，例如：1. 修复XX问题；2. 新增XX功能..."></textarea>
         </div>
         
+        <!-- 单资源链接+文件上传（二选一） -->
         <div class="form-group">
-            <label class="form-label">4. 下载链接（接收端点击"下载"跳转）</label>
-            <input type="url" class="form-input" id="editDownloadUrl" placeholder="https://example.com/download" value="https://www.baidu.com">
-            <div class="form-tip">接收端点击"下载"仅跳转，公告不消失</div>
-        </div>
-        
-        <div class="form-group">
-            <label class="form-label">5. 更新链接（接收端点击"更新"跳转）</label>
-            <input type="url" class="form-input" id="editUpdateUrl" placeholder="https://example.com/update" value="https://www.google.com">
-            <div class="form-tip">接收端点击"更新"跳转后，公告消失</div>
+            <label class="form-label">4. 资源链接（接收端先下载后更新，二选一）</label>
+            <input type="url" class="form-input" id="editResourceUrl" placeholder="填写资源在线链接，例如：https://example.com/resource.zip">
+            <!-- 文件上传触发区域 -->
+            <div class="file-upload" onclick="document.getElementById('fileInput').click()">
+                <div class="file-upload-icon">📁</div>
+                <div>点击上传本地文件（自动生成临时链接）</div>
+                <input type="file" id="fileInput" accept="*">
+            </div>
+            <div class="file-info" id="fileInfo">未选择文件 | 支持任意格式，建议小于100MB（太大易失效）</div>
+            <div class="form-tip">接收端逻辑：下载进度100% → 下载按钮变更新按钮 → 点击更新跳转此链接</div>
         </div>
         
         <div class="edit-btns">
@@ -244,14 +255,11 @@
             <button class="edit-btn sync-btn" id="syncNotice">发布公告</button>
         </div>
     </div>
-
     <div id="toast" class="toast">公告发布成功</div>
-
     <script>
         (function() {
             if (window.noticeUpdateInjected) return;
             window.noticeUpdateInjected = true;
-
             // 元素引用
             const editSwitch = document.getElementById('editSwitch');
             const editPanel = document.getElementById('editPanel');
@@ -260,16 +268,54 @@
             const editTitle = document.getElementById('editTitle');
             const editDate = document.getElementById('editDate');
             const editContent = document.getElementById('editContent');
-            const editDownloadUrl = document.getElementById('editDownloadUrl');
-            const editUpdateUrl = document.getElementById('editUpdateUrl');
+            const editResourceUrl = document.getElementById('editResourceUrl');
+            const fileInput = document.getElementById('fileInput');
+            const fileInfo = document.getElementById('fileInfo');
             const toast = document.getElementById('toast');
             const currentNoticeInfo = document.getElementById('currentNoticeInfo');
-            const mainContent = document.getElementById('mainContent');
 
-            // 1. 日期默认值
+            // 日期默认值（自动填充当前日期）
             editDate.value = new Date().toISOString().split('T')[0];
 
-            // 2. 面板开关
+            // 核心：文件上传处理（修复临时链接失效，增加大小限制）
+            fileInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (!file) {
+                    fileInfo.textContent = '未选择文件 | 支持任意格式，建议小于100MB（太大易失效）';
+                    editResourceUrl.value = '';
+                    return;
+                }
+                // 文件大小限制（100MB以内，避免临时链接加载失败）
+                const maxSize = 100 * 1024 * 1024; // 100MB
+                if (file.size > maxSize) {
+                    alert(`文件太大（当前${formatFileSize(file.size)}），临时链接易失效，请压缩到100MB以内再上传！`);
+                    fileInput.value = ''; // 清空选择
+                    return;
+                }
+                // 显示已选文件信息
+                fileInfo.textContent = `已选择：${file.name}（大小：${formatFileSize(file.size)}）`;
+                
+                // 生成临时在线链接（blob格式，所有浏览器兼容）
+                const fileUrl = URL.createObjectURL(file);
+                // 自动填充到资源链接框，无需手动输入
+                editResourceUrl.value = fileUrl;
+                
+                // 提示链接有效期（避免用户误以为永久有效）
+                toast.textContent = '文件上传成功！临时链接有效期24小时，重启浏览器会失效';
+                toast.style.display = 'block';
+                setTimeout(() => {
+                    toast.style.display = 'none';
+                }, 3000);
+            });
+
+            // 辅助：格式化文件大小（KB/MB显示，更直观）
+            function formatFileSize(size) {
+                if (size < 1024) return `${size} B`;
+                if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
+                return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+            }
+
+            // 面板开关
             editSwitch.addEventListener('click', (e) => { 
                 e.stopPropagation(); 
                 editPanel.classList.add('active'); 
@@ -279,15 +325,20 @@
                 editPanel.classList.remove('active'); 
             });
 
-            // 3. 加载现有公告
+            // 加载现有公告（显示标题、日期、链接摘要）
             function loadCurrentNotice() {
                 const noticeData = localStorage.getItem('currentNotice');
                 if (noticeData) {
                     const notice = JSON.parse(noticeData);
+                    // 链接显示前30个字符，避免过长
+                    const shortUrl = notice.resourceUrl.length > 30 
+                        ? notice.resourceUrl.slice(0, 30) + '...' 
+                        : notice.resourceUrl;
                     currentNoticeInfo.innerHTML = `
                         <div style="margin-bottom: 10px;">
                             <strong>标题：</strong>${notice.title}<br>
                             <strong>日期：</strong>${notice.date}<br>
+                            <strong>资源链接：</strong>${shortUrl}<br>
                             <strong>状态：</strong><span style="color: #10b981;">活跃中</span>
                         </div>
                         <button class="edit-btn" onclick="clearCurrentNotice()" style="background: #ef4444; color: white; padding: 8px 12px; font-size: 12px;">清除公告</button>
@@ -297,40 +348,40 @@
                 }
             }
 
-            // 4. 发布公告
+            // 发布公告（仅校验单资源链接，同步重置接收端状态）
             syncNotice.addEventListener('click', () => {
                 const title = editTitle.value.trim();
                 const content = editContent.value.trim();
-                const downloadUrl = editDownloadUrl.value.trim();
-                const updateUrl = editUpdateUrl.value.trim();
-
-                // 校验
+                const resourceUrl = editResourceUrl.value.trim();
+                
+                // 校验必填项
                 if (!title || !content) {
                     alert('公告标题和内容不能为空！');
                     return;
                 }
-                if (!downloadUrl || !updateUrl) {
-                    alert('请填写"下载链接"和"更新链接"！');
+                if (!resourceUrl) {
+                    alert('请填写资源链接，或上传本地文件生成链接！');
                     return;
                 }
 
-                // 生成公告数据
+                // 生成公告数据（仅含单资源链接）
                 const [year, month, day] = editDate.value.split('-');
                 const noticeData = {
-                    noticeId: 'notice_' + Date.now(),
+                    noticeId: 'notice_' + Date.now(), // 唯一公告ID
                     title: title,
                     date: `${year}年${month}月${day}日`,
-                    content: content.replace(/\n/g, '<br>'),
-                    downloadUrl: downloadUrl,
-                    updateUrl: updateUrl,
+                    content: content.replace(/\n/g, '<br>'), // 换行符转HTML格式
+                    resourceUrl: resourceUrl, // 核心：单资源链接
                     timestamp: new Date().getTime()
                 };
 
-                // 存储到localStorage（接收端会读取这个）
+                // 存储到localStorage（Y接收端实时监听）
                 localStorage.setItem('currentNotice', JSON.stringify(noticeData));
-                
-                // 显示成功提示
-                toast.textContent = '公告发布成功！接收端已可看到新公告';
+                // 重置接收端“已更新”状态（新公告需重新下载）
+                localStorage.setItem('noticeUpdated', 'false');
+
+                // 成功提示
+                toast.textContent = '公告发布成功！Y接收端已自动同步';
                 toast.style.display = 'block';
                 setTimeout(() => {
                     toast.style.display = 'none';
@@ -338,19 +389,23 @@
 
                 // 更新当前公告显示
                 loadCurrentNotice();
-                
+
                 // 重置表单并关闭面板
                 editTitle.value = '';
                 editContent.value = '';
+                editResourceUrl.value = '';
+                fileInput.value = '';
+                fileInfo.textContent = '未选择文件 | 支持任意格式，建议小于100MB（太大易失效）';
                 editPanel.classList.remove('active');
             });
 
-            // 5. 清除公告
+            // 清除公告（同步重置接收端状态）
             window.clearCurrentNotice = function() {
-                if (confirm('确定要清除当前公告吗？接收端将看不到任何公告。')) {
+                if (confirm('确定要清除当前公告吗？Y接收端将立即显示“暂无公告”！')) {
                     localStorage.removeItem('currentNotice');
+                    localStorage.setItem('noticeUpdated', 'false'); // 重置状态
                     loadCurrentNotice();
-                    toast.textContent = '公告已清除';
+                    toast.textContent = '公告已清除，Y接收端已同步';
                     toast.style.display = 'block';
                     setTimeout(() => {
                         toast.style.display = 'none';
@@ -358,7 +413,7 @@
                 }
             };
 
-            // 初始化加载当前公告
+            // 页面加载时初始化公告状态
             loadCurrentNotice();
         })();
     </script>
